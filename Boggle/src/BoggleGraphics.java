@@ -1,8 +1,8 @@
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
+import java.util.*;
 
-public class BoggleGraphics {
+public class BoggleGraphics implements WindowListener{
 	static final int squareSize = 50;
 	static final int xOffset = 50;
 	static final int yOffset = 50;
@@ -13,12 +13,12 @@ public class BoggleGraphics {
 	Label guessLabel;
 	String guessLabelText="";
 	Frame f;
-	ArrayList<Label> prevLabels;
+	LinkedList<ArrayList<Label>> prevLabelPaths;
 	KeyListener runnerKeyListener;
 
 	public BoggleGraphics(KeyListener keyListener) {
 		runnerKeyListener = keyListener;
-		prevLabels = new ArrayList<Label>();
+		prevLabelPaths = new LinkedList<ArrayList<Label>>();
 		dieLabels = new Label[height*width];
 		f = new Frame();
 	}
@@ -71,6 +71,47 @@ public class BoggleGraphics {
 		f.setVisible(true);
 	}
 	public void guessAnimation(boolean isCorrectGuess) {
+		
+	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {
+		System.exit(0);
+	}
+
+	@Override
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
 		
 	}
 }
