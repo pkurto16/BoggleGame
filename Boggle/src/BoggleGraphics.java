@@ -14,11 +14,13 @@ public class BoggleGraphics implements WindowListener {
 	String guessLabelText = "";
 	Frame f;
 	LinkedList<ArrayList<Label>> prevLabelPaths;
+	LinkedList<ArrayList<Boolean>> prevLabelPathsAreUsed;
 	KeyListener runnerKeyListener;
 
 	public BoggleGraphics(KeyListener keyListener) {
 		runnerKeyListener = keyListener;
 		prevLabelPaths = new LinkedList<ArrayList<Label>>();
+		prevLabelPathsAreUsed = new LinkedList<ArrayList<Boolean>>();
 		dieLabels = new Label[height * width];
 		f = new Frame();
 	}

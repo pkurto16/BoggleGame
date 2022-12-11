@@ -32,7 +32,6 @@ public class BoggleRunner implements KeyListener {
 		lexicon = new GameTrie();
 		readLexiconFromFile();
 		graphics.start(d.getShuffledDiceSet());
-
 		boolean playingGame = true;
 		while (playingGame) {
 			playOnce();
@@ -88,73 +87,42 @@ public class BoggleRunner implements KeyListener {
 
 	}
 
-	// TODO: atrocious code (fix)
 	private boolean graphicallyAdd(Character typedChar) {
 
 		ArrayList<Label> newPossibilities = new ArrayList<Label>();
 
 		if (graphics.prevLabelPaths.size() == 0) {
 			newPossibilities = checkFirstCharLabels(typedChar);
-			return setNewColors(0);
 		} else {
 			newPossibilities = getValidAdjacentLabels(typedChar);
-			
-			if (newPossibilities.size() > 0) {
-				graphics.prevLabelPaths.add(newPossibilities);
-				return fixGraphicsColors();
-			}
 		}
-		
+
+		if (newPossibilities.size() > 0) {
+			graphics.prevLabelPaths.add(newPossibilities);
+			if (graphics.prevLabelPaths.size() == 1) {
+				setNewColors(0);
+			}
+			return adjustGraphicsColors();
+		}
+
 		return false;
 	}
 
 	private ArrayList<Label> checkFirstCharLabels(Character typedChar) {
 		ArrayList<Label> newPossibilities = new ArrayList<Label>();
 		for (int i = 0; i < graphics.dieLabels.length; i++) {
-			if (labelComboValid(graphics.dieLabels[i], null, typedChar)) {
+			boolean colorCorrect = graphics.dieLabels[i].getForeground() == Color.WHITE
+					|| graphics.dieLabels[i].getForeground() == Color.YELLOW;
+			if (labelComboValid(graphics.dieLabels[i], null, typedChar) && colorCorrect) {
 				newPossibilities.add(graphics.dieLabels[i]);
 			}
 		}
 		return newPossibilities;
 	}
-	
-	private boolean setNewColors(int index) {
-		for (Label l : graphics.prevLabelPaths.get(index)){
-			
-			if (graphics.prevLabelPaths.get(index).size() > 1) {
-				graphics.guessLabel.setText(graphics.guessLabelText);
-				l.setForeground(Color.YELLOW);
-			} 
-			else if (graphics.prevLabelPaths.get(index).size() == 1) {
-				graphics.guessLabel.setText(graphics.guessLabelText);
-				l.setForeground(Color.GREEN);
-			}
-		}
-		return true;
-	}
-	
-	private ArrayList<Label> getValidAdjacentLabels(Character typedChar) {
-		ArrayList<Label> newPossibilities = new ArrayList<Label>();
-
-		for (Label prevLab : graphics.prevLabelPaths.getLast()) {
-			for (int i = 0; i < graphics.dieLabels.length; i++) {
-				if (labelComboValid(graphics.dieLabels[i], prevLab, typedChar)) {
-					if (!newPossibilities.contains(graphics.dieLabels[i])) {
-						newPossibilities.add(graphics.dieLabels[i]);
-					}
-
-				}
-			}
-		}
-		return newPossibilities;
-
-	}
 
 	private boolean labelComboValid(Label label, Label prev, char typedChar) {
-		boolean colorCorrect = label.getForeground() == Color.WHITE || label.getForeground() == Color.YELLOW;
 		boolean isCorrectChar = label.getText().charAt(0) == typedChar;
-
-		return colorCorrect && isCorrectChar && (areAdjacent(label, prev) || prev == null);
+		return isCorrectChar && (areAdjacent(label, prev) || prev == null);
 	}
 
 	private boolean areAdjacent(Label l1, Label l2) {
@@ -185,36 +153,97 @@ public class BoggleRunner implements KeyListener {
 		return coords;
 	}
 
-	private boolean fixGraphicsColors() {
-		for (int i = graphics.prevLabelPaths.size() - 1; i > 1; i--) {
+	private ArrayList<Label> getValidAdjacentLabels(Character typedChar) {
+		ArrayList<Label> newPossibilities = new ArrayList<Label>();
 
-			int numUsed = 0;
-			Label lastUsedLabel = null;
-			for (int j = graphics.prevLabelPaths.get(i - 1).size() - 1; j >= 0; j--) {
-				if (labelIsntUsed(graphics.prevLabelPaths.get(i - 1).get(j), graphics.prevLabelPaths.get(i))) {
-					graphics.prevLabelPaths.get(i - 1).get(j).setForeground(Color.WHITE);
-					graphics.prevLabelPaths.get(i - 1).remove(j);
-				} else {
-					lastUsedLabel = graphics.prevLabelPaths.get(i).get(j);
-					numUsed++;
+		for (Label prevLab : graphics.prevLabelPaths.getLast()) {
+			for (int i = 0; i < graphics.dieLabels.length; i++) {
+				boolean colorCorrect = graphics.dieLabels[i].getForeground() == Color.WHITE 
+						|| graphics.dieLabels[i].getForeground() == Color.YELLOW;
+				
+				if (labelComboValid(graphics.dieLabels[i], prevLab, typedChar) && colorCorrect) {
+					if (!newPossibilities.contains(graphics.dieLabels[i])) {
+						newPossibilities.add(graphics.dieLabels[i]);
+					}
+
 				}
 			}
-			if (numUsed == 1) {
-				lastUsedLabel.setForeground(Color.GREEN);
-			}
-
 		}
+		return newPossibilities;
 
-		while (graphics.prevLabelPaths.size() >= 1) {
-			graphics.prevLabelPaths.remove(0);
-		}
+	}
 
-		setNewColors(graphics.prevLabelPaths.size() - 1);
+	private boolean setNewColors(int index) {
 		
+
+			if (graphics.prevLabelPaths.get(index).size() > 1) {
+				for (Label l : graphics.prevLabelPaths.get(index)) {
+					l.setForeground(Color.YELLOW);
+				}
+				checkForRedLabels(graphics.prevLabelPaths.get(index));
+				
+			} else if (graphics.prevLabelPaths.get(index).size() == 1) {
+				graphics.prevLabelPaths.get(index).get(0).setForeground(Color.GREEN);
+			}
+		
+		graphics.guessLabel.setText(graphics.guessLabelText);
+		return true;
+	}
+	
+	private void checkForRedLabels(ArrayList<Label> labelList) {
+		ArrayList<Label> possibleReds = findAllPossibleReds(labelList);
+		int instancesOfCharInGuess = findInstancesOfCharInGuess(labelList.get(0).getText().charAt(0));
+		
+		//should never be greater than size, but this is just an assurance
+		if(instancesOfCharInGuess>=possibleReds.size()) {
+			for(Label l : possibleReds) {
+				l.setForeground(Color.RED);
+			}
+		}
+		if(instancesOfCharInGuess>=labelList.size()) {
+			for(Label l : labelList) {
+				l.setForeground(Color.RED);
+			}
+		}
+	}
+	
+	private ArrayList<Label> findAllPossibleReds(ArrayList<Label> labelList){
+		ArrayList<Label> possibleReds = new ArrayList<Label>();
+		for(int i = labelList.size()-1; i>=0; i--) {
+			if(labelIsUsed(labelList.get(i),labelList)) {
+				possibleReds.add(labelList.get(i));
+			}
+		}
+		return possibleReds;
+	}
+	
+	private int findInstancesOfCharInGuess(char c) {
+		int instances = 0;
+		for(char guessLetter : graphics.guessLabelText.toCharArray()) {
+			if(guessLetter==c) {
+				instances++;
+			}
+		}
+		return instances;
+	}
+
+	
+	private boolean adjustGraphicsColors() {
+		
+		for (int i = graphics.prevLabelPaths.size() - 1; i >= 1; i--) {
+			setNewColors(i);
+			for (int j = graphics.prevLabelPaths.get(i - 1).size() - 1; j >= 0; j--) {
+				if (!labelIsUsed(graphics.prevLabelPaths.get(i - 1).get(j), graphics.prevLabelPaths.get(i))) {
+					graphics.prevLabelPaths.get(i - 1).get(j).setForeground(Color.WHITE);
+					graphics.prevLabelPaths.get(i - 1).remove(j);
+				}
+			}
+		}
+		setNewColors(0);
 		return true;
 	}
 
-	private boolean labelIsntUsed(Label checkedLabel, ArrayList<Label> possiblePathLabels) {
+	private boolean labelIsUsed(Label checkedLabel, ArrayList<Label> possiblePathLabels) {
 		for (Label path : possiblePathLabels) {
 			if (labelComboValid(path, checkedLabel, path.getText().charAt(0))) {
 				return true;
@@ -229,8 +258,16 @@ public class BoggleRunner implements KeyListener {
 			resetAfterGuess(checkGuess());
 		}
 		if (e.getKeyCode() == backSpaceKeyCode && graphics.guessLabelText != "") {
-			graphics.guessLabelText = graphics.guessLabelText.substring(0, graphics.guessLabelText.length() - 1);
+			removeLastChar();
 		}
+	}
+
+	private void removeLastChar() {
+		graphics.guessLabelText = graphics.guessLabelText.substring(0, graphics.guessLabelText.length() - 1);
+		for(Label l : graphics.prevLabelPaths.getLast()) {
+			l.setForeground(Color.WHITE);
+		}
+		graphics.prevLabelPaths.remove(graphics.prevLabelPaths.getLast());
 	}
 
 	private int checkGuess() {
