@@ -79,15 +79,12 @@ public class BoggleRunner implements KeyListener {
 	@Override
 	public void keyTyped(KeyEvent e) {
 		char typedChar = Character.toUpperCase(e.getKeyChar());
-		// returns true if something was graphically added
-		if (graphicallyAdd(typedChar)) {
-			graphics.guessLabelText += Character.toUpperCase(typedChar);
-		}
+		checkForAdd(typedChar);
 		System.out.println(graphics.guessLabelText);
 
 	}
 
-	private boolean graphicallyAdd(Character typedChar) {
+	private boolean checkForAdd(Character typedChar) {
 
 		ArrayList<Label> newPossibilities = new ArrayList<Label>();
 
@@ -98,6 +95,7 @@ public class BoggleRunner implements KeyListener {
 		}
 
 		if (newPossibilities.size() > 0) {
+			graphics.guessLabelText += typedChar;
 			graphics.prevLabelPaths.add(newPossibilities);
 			if (graphics.prevLabelPaths.size() == 1) {
 				setNewColors(0);
@@ -111,9 +109,8 @@ public class BoggleRunner implements KeyListener {
 	private ArrayList<Label> checkFirstCharLabels(Character typedChar) {
 		ArrayList<Label> newPossibilities = new ArrayList<Label>();
 		for (int i = 0; i < graphics.dieLabels.length; i++) {
-			boolean colorCorrect = graphics.dieLabels[i].getForeground() == Color.WHITE
-					|| graphics.dieLabels[i].getForeground() == Color.YELLOW;
-			if (labelComboValid(graphics.dieLabels[i], null, typedChar) && colorCorrect) {
+			if (labelComboValid(graphics.dieLabels[i], null, typedChar)
+					&& colorForAddCorrect(graphics.dieLabels[i], typedChar)) {
 				newPossibilities.add(graphics.dieLabels[i]);
 			}
 		}
@@ -158,10 +155,10 @@ public class BoggleRunner implements KeyListener {
 
 		for (Label prevLab : graphics.prevLabelPaths.getLast()) {
 			for (int i = 0; i < graphics.dieLabels.length; i++) {
-				boolean colorCorrect = graphics.dieLabels[i].getForeground() == Color.WHITE 
-						|| graphics.dieLabels[i].getForeground() == Color.YELLOW;
-				
-				if (labelComboValid(graphics.dieLabels[i], prevLab, typedChar) && colorCorrect) {
+
+				if (labelComboValid(graphics.dieLabels[i], prevLab, typedChar)
+						&& colorForAddCorrect(graphics.dieLabels[i], typedChar)) {
+
 					if (!newPossibilities.contains(graphics.dieLabels[i])) {
 						newPossibilities.add(graphics.dieLabels[i]);
 					}
@@ -173,63 +170,107 @@ public class BoggleRunner implements KeyListener {
 
 	}
 
-	private boolean setNewColors(int index) {
-		
+	private boolean colorForAddCorrect(Label prevConnection, Character typedChar) {
+		boolean white = prevConnection.getForeground() == Color.WHITE;
+		boolean yellow = prevConnection.getForeground() == Color.YELLOW;
+		boolean red = prevConnection.getForeground() == Color.RED 
+				&& typedChar != prevConnection.getText().charAt(0);
 
-			if (graphics.prevLabelPaths.get(index).size() > 1) {
-				for (Label l : graphics.prevLabelPaths.get(index)) {
-					l.setForeground(Color.YELLOW);
-				}
-				checkForRedLabels(graphics.prevLabelPaths.get(index));
-				
-			} else if (graphics.prevLabelPaths.get(index).size() == 1) {
-				graphics.prevLabelPaths.get(index).get(0).setForeground(Color.GREEN);
+		return white || yellow || red;
+	}
+
+	private boolean setNewColors(int index) {
+
+		if (graphics.prevLabelPaths.get(index).size() > 1) {
+			for (Label l : graphics.prevLabelPaths.get(index)) {
+				l.setForeground(Color.YELLOW);
 			}
-		
+			checkForOutlierLabels(graphics.prevLabelPaths.get(index));
+
+		} else if (graphics.prevLabelPaths.get(index).size() == 1) {
+			graphics.prevLabelPaths.get(index).get(0).setForeground(Color.GREEN);
+		}
+
 		graphics.guessLabel.setText(graphics.guessLabelText);
 		return true;
 	}
-	
-	private void checkForRedLabels(ArrayList<Label> labelList) {
-		ArrayList<Label> possibleReds = findAllPossibleReds(labelList);
+
+	private void checkForOutlierLabels(ArrayList<Label> labelList) {
+		ArrayList<ArrayList<Label>> possibleRedsOrGreens = searchForIsolatedGroups(labelList);
+		if (possibleRedsOrGreens.size() == 0)
+			return;
+
+		if (possibleRedsOrGreens.size() > 1) {
+			setReds(possibleRedsOrGreens);
+			return;
+		}
+
+		ArrayList<Label> possibleGreens = possibleRedsOrGreens.get(0);
+
 		int instancesOfCharInGuess = findInstancesOfCharInGuess(labelList.get(0).getText().charAt(0));
-		
-		//should never be greater than size, but this is just an assurance
-		if(instancesOfCharInGuess>=possibleReds.size()) {
-			for(Label l : possibleReds) {
-				l.setForeground(Color.RED);
+
+		// should never be greater than size, but this is just an assurance
+		if (instancesOfCharInGuess >= labelList.size()) {
+			for (Label l : possibleGreens) {
+				l.setForeground(Color.GREEN);
 			}
 		}
-		if(instancesOfCharInGuess>=labelList.size()) {
-			for(Label l : labelList) {
-				l.setForeground(Color.RED);
+		if (instancesOfCharInGuess >= labelList.size()) {
+			for (Label l : labelList) {
+				l.setForeground(Color.GREEN);
 			}
 		}
 	}
-	
-	private ArrayList<Label> findAllPossibleReds(ArrayList<Label> labelList){
-		ArrayList<Label> possibleReds = new ArrayList<Label>();
-		for(int i = labelList.size()-1; i>=0; i--) {
-			if(labelIsUsed(labelList.get(i),labelList)) {
-				possibleReds.add(labelList.get(i));
+
+	private ArrayList<ArrayList<Label>> searchForIsolatedGroups(ArrayList<Label> labelList) {
+		ArrayList<ArrayList<Label>> isolatedButGroupedYellows = new ArrayList<ArrayList<Label>>();
+		ArrayList<Label> pairGroupings = new ArrayList<Label>();
+		ArrayList<Label> labelListCopy = new ArrayList<Label>();
+
+		for (Label l : labelList) {
+			labelListCopy.add(l);
+		}
+
+		while (labelListCopy.size() > 0) {
+			pairGroupings.add(labelListCopy.get(0));
+			for (Label l : labelListCopy) {
+				if (labelComboValid(l, labelListCopy.get(0), l.getText().charAt(0))) {
+					pairGroupings.add(l);
+				}
+			}
+			labelListCopy.remove(0);
+
+			if (pairGroupings.size() > 1) {
+				for (Label l : pairGroupings) {
+					labelListCopy.remove(l);
+				}
+				isolatedButGroupedYellows.add(pairGroupings);
 			}
 		}
-		return possibleReds;
+		return isolatedButGroupedYellows;
 	}
-	
+
+	private void setReds(ArrayList<ArrayList<Label>> possibleReds) {
+		for (ArrayList<Label> labArr : possibleReds) {
+			for (Label l : labArr) {
+				l.setForeground(Color.RED);
+			}
+		}
+
+	}
+
 	private int findInstancesOfCharInGuess(char c) {
 		int instances = 0;
-		for(char guessLetter : graphics.guessLabelText.toCharArray()) {
-			if(guessLetter==c) {
+		for (char guessLetter : graphics.guessLabelText.toCharArray()) {
+			if (guessLetter == c) {
 				instances++;
 			}
 		}
 		return instances;
 	}
 
-	
 	private boolean adjustGraphicsColors() {
-		
+
 		for (int i = graphics.prevLabelPaths.size() - 1; i >= 1; i--) {
 			setNewColors(i);
 			for (int j = graphics.prevLabelPaths.get(i - 1).size() - 1; j >= 0; j--) {
@@ -249,7 +290,7 @@ public class BoggleRunner implements KeyListener {
 				return true;
 			}
 		}
-		return false;
+		return checkedLabel.getForeground()==Color.GREEN || checkedLabel.getForeground()==Color.RED;
 	}
 
 	@Override
@@ -264,7 +305,7 @@ public class BoggleRunner implements KeyListener {
 
 	private void removeLastChar() {
 		graphics.guessLabelText = graphics.guessLabelText.substring(0, graphics.guessLabelText.length() - 1);
-		for(Label l : graphics.prevLabelPaths.getLast()) {
+		for (Label l : graphics.prevLabelPaths.getLast()) {
 			l.setForeground(Color.WHITE);
 		}
 		graphics.prevLabelPaths.remove(graphics.prevLabelPaths.getLast());
@@ -275,7 +316,7 @@ public class BoggleRunner implements KeyListener {
 	}
 
 	private void resetAfterGuess(int enteredStringScore) {
-		if (correctGuesses.contains(graphics.guessLabelText)) {
+		if (!correctGuesses.contains(graphics.guessLabelText)) {
 			graphics.guessAnimation(enteredStringScore != -1);
 
 			if (enteredStringScore > 0) {
