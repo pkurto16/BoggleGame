@@ -12,11 +12,12 @@ public class BoggleRunner implements KeyListener {
 			10 }; // q is worth 9 as it is always followed by a u, so Qu=10pts
 	static final int enterKeyCode = 10;
 	static final int backSpaceKeyCode = 8;
-	BoggleGraphics graphics = new BoggleGraphics(this);
+	static final int height = 7;
+	static final int width = 4;
+	BoggleGraphics graphics = new BoggleGraphics(this,height,width);
 	ArrayList<Character> currentString = new ArrayList<Character>();
 	GameTrie lexicon;
 	GameTrie correctGuesses = new GameTrie();
-	DiceSet d;
 	File lexiconFile = new File("bin/bogwords.txt");
 	Scanner myReader;
 	Timer t = new Timer();
@@ -28,10 +29,10 @@ public class BoggleRunner implements KeyListener {
 	}
 
 	private void game() {
-		d = new DiceSet();
+		
 		lexicon = new GameTrie();
 		readLexiconFromFile();
-		graphics.start(d.getShuffledDiceSet());
+		graphics.start();
 		boolean playingGame = true;
 		while (playingGame) {
 			playOnce();
@@ -142,8 +143,8 @@ public class BoggleRunner implements KeyListener {
 		int[] coords = new int[2];
 		for (int i = 0; i < graphics.dieLabels.length; i++) {
 			if (graphics.dieLabels[i] == l) {
-				coords[0] = i % (graphics.height);
-				coords[1] = i / (graphics.width);
+				coords[0] = i % (width);
+				coords[1] = i / (height);
 			}
 
 		}
@@ -162,12 +163,10 @@ public class BoggleRunner implements KeyListener {
 					if (!newPossibilities.contains(graphics.dieLabels[i])) {
 						newPossibilities.add(graphics.dieLabels[i]);
 					}
-
 				}
 			}
 		}
 		return newPossibilities;
-
 	}
 
 	private boolean colorForAddCorrect(Label prevConnection, Character typedChar) {
@@ -175,7 +174,9 @@ public class BoggleRunner implements KeyListener {
 		boolean yellow = prevConnection.getForeground() == Color.YELLOW;
 		boolean red = prevConnection.getForeground() == Color.RED 
 				&& typedChar != prevConnection.getText().charAt(0);
-
+		if(yellow) {
+			prevConnection.setForeground(Color.RED);
+		}
 		return white || yellow || red;
 	}
 
@@ -183,7 +184,9 @@ public class BoggleRunner implements KeyListener {
 
 		if (graphics.prevLabelPaths.get(index).size() > 1) {
 			for (Label l : graphics.prevLabelPaths.get(index)) {
-				l.setForeground(Color.YELLOW);
+				if(l.getForeground()!=Color.RED) {
+					l.setForeground(Color.YELLOW);
+				}
 			}
 			checkForOutlierLabels(graphics.prevLabelPaths.get(index));
 
@@ -197,17 +200,19 @@ public class BoggleRunner implements KeyListener {
 
 	private void checkForOutlierLabels(ArrayList<Label> labelList) {
 		ArrayList<ArrayList<Label>> possibleRedsOrGreens = searchForIsolatedGroups(labelList);
+		int instancesOfCharInGuess = findInstancesOfCharInGuess(labelList.get(0).getText().charAt(0));
+		
 		if (possibleRedsOrGreens.size() == 0)
 			return;
 
-		if (possibleRedsOrGreens.size() > 1) {
-			setReds(possibleRedsOrGreens);
+		if (possibleRedsOrGreens.size() >= 2) {
+			setReds(possibleRedsOrGreens, instancesOfCharInGuess);
 			return;
 		}
 
 		ArrayList<Label> possibleGreens = possibleRedsOrGreens.get(0);
 
-		int instancesOfCharInGuess = findInstancesOfCharInGuess(labelList.get(0).getText().charAt(0));
+		
 
 		// should never be greater than size, but this is just an assurance
 		if (instancesOfCharInGuess >= labelList.size()) {
@@ -250,10 +255,17 @@ public class BoggleRunner implements KeyListener {
 		return isolatedButGroupedYellows;
 	}
 
-	private void setReds(ArrayList<ArrayList<Label>> possibleReds) {
+	private void setReds(ArrayList<ArrayList<Label>> possibleReds, int instancesOfCharInGuess) {
 		for (ArrayList<Label> labArr : possibleReds) {
-			for (Label l : labArr) {
-				l.setForeground(Color.RED);
+			if (instancesOfCharInGuess >= labArr.size()) {
+				for (Label l : labArr) {
+					l.setForeground(Color.RED);
+				}
+			}
+			if (instancesOfCharInGuess >= labArr.size()) {
+				for (Label l : labArr) {
+					l.setForeground(Color.RED);
+				}
 			}
 		}
 

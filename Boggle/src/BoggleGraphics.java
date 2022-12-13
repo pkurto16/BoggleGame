@@ -6,28 +6,32 @@ public class BoggleGraphics implements WindowListener {
 	static final int squareSize = 50;
 	static final int xOffset = 50;
 	static final int yOffset = 50;
-	final int height = 4;
-	final int width = 4;
+	private int height;
+	private int width;
+	
 	DiceSet d;
+	char[][] dieChars;
 	Label[] dieLabels;
 	Label guessLabel;
 	String guessLabelText = "";
 	Frame f;
 	LinkedList<ArrayList<Label>> prevLabelPaths;
-	LinkedList<ArrayList<Boolean>> prevLabelPathsAreUsed;
 	KeyListener runnerKeyListener;
 
-	public BoggleGraphics(KeyListener keyListener) {
+	public BoggleGraphics(KeyListener keyListener, int height, int width) {
 		runnerKeyListener = keyListener;
+		this.height = height;
+		this.width = width;
+		d= new DiceSet(false, height, width);
 		prevLabelPaths = new LinkedList<ArrayList<Label>>();
-		prevLabelPathsAreUsed = new LinkedList<ArrayList<Boolean>>();
+		dieChars = d.getShuffledDiceSet();
 		dieLabels = new Label[height * width];
 		f = new Frame();
 	}
 
-	public void start(char[][] arr) {
+	public void start() {
 
-		drawShuffledLetters(arr);
+		drawShuffledLetters(dieChars);
 		makeGuessLabel();
 		initializeFrame();
 
@@ -36,7 +40,7 @@ public class BoggleGraphics implements WindowListener {
 	private void initializeFrame() {
 		f.addKeyListener(runnerKeyListener);
 		f.addWindowListener(this);
-		f.setSize(xOffset * 2 + squareSize * width, yOffset * 2 + squareSize * (height + 1));
+		f.setSize(xOffset * 2 + squareSize * (width+3), yOffset * 2 + squareSize * (height + 2));
 		f.setBackground(Color.getHSBColor(0, 0, (float) 0.1));
 		f.setLayout(null);
 		f.setVisible(true);
@@ -53,7 +57,7 @@ public class BoggleGraphics implements WindowListener {
 		l.setAlignment(Label.CENTER);
 		l.setForeground(Color.WHITE);
 
-		dieLabels[xCoord * 4 + yCoord] = l;
+		dieLabels[yCoord * width + xCoord] = l;
 		f.add(l);
 	}
 
@@ -66,8 +70,8 @@ public class BoggleGraphics implements WindowListener {
 	}
 
 	public void drawShuffledLetters(char[][] charGrid) {
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
 				makeCharacterLabel(i, j, charGrid[i][j]);
 			}
 		}

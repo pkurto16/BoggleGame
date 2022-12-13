@@ -1,26 +1,54 @@
 
 public class DiceSet {
 	private Character[][][] diceSet;
+	private final Character[][][] DICE = 
+		{{{'R','I','F','O','B','X'},
+		{'I','F','E','H','E','Y'},
+		{'D','E','N','O','W','S'},
+		{'U','T','O','K','N','D'}},
+		{{'H','M','S','R','A','O'},
+		{'L','U','P','E','T','S'},
+		{'A','C','I','T','O','A'},
+		{'Y','L','G','K','U','E'}},
+		{{'Q','B','M','J','O','A'}, //Q represents Qu
+		{'E','H','I','S','P','N'},
+		{'V','E','T','I','G','N'},
+		{'B','A','L','I','Y','T'}},
+		{{'E','Z','A','V','N','D'},
+		{'R','A','L','E','S','C'},
+		{'U','W','I','L','R','G'},
+		{'P','A','C','E','M','D'}}};
 	private static final char[] allLetters = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
 			'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
-	private static final int[] letterWeights = {821,150,280,430,1300,220,200,610,700,15,77,4,240,670,750,190,10,600,910,280,98,240,15,200,7};
+	
+	private static final int[] letterWeights = {9,2,2,4,12,2,3,2,9,1,1,4,4,6,8,2,1,6,4,6,2,2,1,2,1};
 	private int totalWeight;
 	private static final int numSides = 6;
-	private static final int height = 4;
-	private static final int width = 4;
+	private int height = 4;
+	private int width = 7;
 
-	public DiceSet() {
+	public DiceSet(boolean isBoring, int height, int width) {
+		this.height = height;
+		this.width = width;
+		
 		totalWeight = 0;
 		for(int i:letterWeights) {
 			totalWeight+=i;
 		}
-		diceSet = new Character[height][width][numSides];
-		setDiceChars();
+		if(isBoring) {
+			diceSet = DICE;
+		}
+		else {
+			diceSet = new Character[width][height][numSides];
+			setDiceChars();
+		}
+		
+		
 	}
 
 	private void setDiceChars() {
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
 				createOneDie(i,j);
 			}
 		}
@@ -34,6 +62,8 @@ public class DiceSet {
 		}
 		for (int k = 0; k < numSides; k++) {
 			diceSet[i][j][k] = generateValidChar(availableLetters);
+			
+			//dice won't be able to have 2 sides that are the same letter
 			availableLetters[diceSet[i][j][k].hashCode()-65] = '!';
 		}
 
