@@ -94,9 +94,9 @@ public class DiceSet {
 		return diceSet;
 	}
 	public char[][] getShuffledDiceSet(){
-		char[][] eachDie = new char[diceSet.length][diceSet[0].length];
-		for(int i = 0; i<eachDie.length; i++) {
-			for(int j =0; j<eachDie[0].length; j++) {
+		char[][] eachDie = new char[width][height];
+		for(int i = 0; i<width; i++) {
+			for(int j =0; j<height; j++) {
 				eachDie[i][j] = diceSet[i][j][(int)(Math.random()*6)];
 			}
 		}
