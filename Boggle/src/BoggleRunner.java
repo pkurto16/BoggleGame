@@ -17,11 +17,10 @@ public class BoggleRunner implements KeyListener {
 	
 	GameTrie lexicon;
 	Scanner myReader;
-	int score;
+	int score=0;
 	int highScore;
-	double speedMulti;
 	
-	BoggleGraphics graphics = new BoggleGraphics(this, height, width);
+	BoggleGraphics graphics = new BoggleGraphics(this, height, width, true);
 	ArrayList<Character> currentString = new ArrayList<Character>();
 	GameTrie correctGuesses = new GameTrie();
 	File lexiconFile = new File("bin/bogwords.txt");
@@ -66,6 +65,7 @@ public class BoggleRunner implements KeyListener {
 				e.printStackTrace();
 			}
 		}
+		graphics.f.removeAll();
 		return true;
 	}
 
@@ -104,17 +104,16 @@ public class BoggleRunner implements KeyListener {
 	
 	
 	private void playOnce() {
-		timer = 10000000;
+		timer = 40000;
 		graphics.startRound();
-		try {
-			while (timer > 0) {
-				timer -= 10 * speedMulti;
-				Thread.sleep(10);
-				speedMulti = 1 + score / 10;
+		while (timer > 0) {
+			timer -= 100;
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			graphics.updateTimer(timer/100);
 		}
 		graphics.f.removeAll();
 
@@ -124,7 +123,7 @@ public class BoggleRunner implements KeyListener {
 	
 	private boolean askIfPlayAgain() {
 		isActive = false;
-		graphics.drawFinishScreen(score);
+		graphics.drawFinishScreen(score, highScore);
 		while (!isActive) {
 			try {
 				Thread.sleep(10);
@@ -139,13 +138,10 @@ public class BoggleRunner implements KeyListener {
 	
 	@Override
 	public void keyTyped(KeyEvent e) {
-		if (isActive) {
 			char typedChar = Character.toUpperCase(e.getKeyChar());
 			if (checkQAdd(typedChar)) {
 				checkForAdd(typedChar);
 			}
-		}
-
 	}
 
 	
@@ -344,6 +340,12 @@ public class BoggleRunner implements KeyListener {
 			if (e.getKeyCode() == enterKeyCode) {
 				isActive = true;
 			}
+			if (e.getKeyCode() == backSpaceKeyCode) {
+				height = 6-(int)(Math.random()*3);
+				width = 6-(int)(Math.random()*3);
+				graphics.resetDie(false,height,width);
+				isActive = true;
+			}
 		}
 	}
 
@@ -357,8 +359,10 @@ public class BoggleRunner implements KeyListener {
 			currentGuess = currentGuess.substring(0, currentGuess.length() - 1);
 			graphics.updateGuessLabel(currentGuess);
 		}
-
-		graphics.prevLabelPaths.getLast().get(0).setForeground(Color.WHITE);
+		for(Label l : graphics.prevLabelPaths.getLast()) {
+			l.setForeground(Color.WHITE);
+		}
+		graphics.prevLabelPaths.removeLast();
 	}
 
 	
@@ -401,8 +405,12 @@ public class BoggleRunner implements KeyListener {
 		if (additionalScore > 0) {
 			score += additionalScore;
 			graphics.updateGuessLabel("+" + additionalScore + " POINTS");
-			graphics.updateScoreLabel(score);
 			graphics.guessLabel.setForeground(Color.GREEN);
+			for (Label l : graphics.dieLabels) {
+				l.setForeground(Color.WHITE);
+			}
+			graphics.updateScoreLabel(score);
+			
 		}
 
 		correctGuesses.put(currentGuess, additionalScore);
