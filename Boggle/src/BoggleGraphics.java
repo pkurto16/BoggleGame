@@ -144,7 +144,7 @@ public class BoggleGraphics implements WindowListener {
 	
 	private void makeTimer() {
 		timerLabel = new Label();
-		timerLabel.setBounds(xOffset + squareSize * width/2-18, 0, xOffset * 2 + squareSize * (width+3) , squareSize*4);
+		timerLabel.setBounds(xOffset + squareSize * width/2-18, 12, xOffset * 2 + squareSize * (width+3) , squareSize*2);
 	}
 	public void updateTimer(int time) {
 		String scoreStr = time/10+"."+time%10+" SECONDS LEFT";

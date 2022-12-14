@@ -107,13 +107,13 @@ public class BoggleRunner implements KeyListener {
 		timer = 40000;
 		graphics.startRound();
 		while (timer > 0) {
+			graphics.updateTimer(timer/100);
 			timer -= 100;
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			graphics.updateTimer(timer/100);
 		}
 		graphics.f.removeAll();
 
@@ -139,6 +139,7 @@ public class BoggleRunner implements KeyListener {
 	@Override
 	public void keyTyped(KeyEvent e) {
 			char typedChar = Character.toUpperCase(e.getKeyChar());
+			graphics.updateTimer(timer/100);
 			if (checkQAdd(typedChar)) {
 				checkForAdd(typedChar);
 			}
@@ -155,6 +156,7 @@ public class BoggleRunner implements KeyListener {
 		}
 		if (typedChar == 'U') {
 			currentGuess += typedChar;
+			graphics.updateGuessLabel(currentGuess);
 			return false;
 		}
 		return false;
@@ -329,6 +331,7 @@ public class BoggleRunner implements KeyListener {
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if (isActive) {
+			graphics.updateTimer(timer/100);
 			if (e.getKeyCode() == backSpaceKeyCode && currentGuess != "") {
 				removeLastChar();
 			}
@@ -342,7 +345,7 @@ public class BoggleRunner implements KeyListener {
 			}
 			if (e.getKeyCode() == backSpaceKeyCode) {
 				height = 6-(int)(Math.random()*3);
-				width = 6-(int)(Math.random()*3);
+				width = height;
 				graphics.resetDie(false,height,width);
 				isActive = true;
 			}
