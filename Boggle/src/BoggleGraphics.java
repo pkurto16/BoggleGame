@@ -13,7 +13,7 @@ public class BoggleGraphics implements WindowListener {
 	char[][] dieChars;
 	Label[] dieLabels;
 	Label guessLabel;
-	String guessLabelText = "";
+	Label scoreLabel;
 	Frame f;
 	LinkedList<ArrayList<Label>> prevLabelPaths;
 	KeyListener runnerKeyListener;
@@ -26,14 +26,30 @@ public class BoggleGraphics implements WindowListener {
 		prevLabelPaths = new LinkedList<ArrayList<Label>>();
 		dieChars = d.getShuffledDiceSet();
 		dieLabels = new Label[height * width];
+		
 		f = new Frame();
 	}
 
 	public void start() {
+		initializeFrame();
+		drawStartScreen();
+	}
+	
+	public void drawStartScreen() {
+		Label startText= new Label();
+		startText.setAlignment(Label.CENTER);
+		
+	}
+	public void drawFinishScreen(int score) {
+		Label endText= new Label();
+		endText.setAlignment(Label.CENTER);
+	}
+	
+	public void startRound() {
 
 		drawShuffledLetters(dieChars);
 		makeGuessLabel();
-		initializeFrame();
+		makeScoreLabel();
 
 	}
 
@@ -49,23 +65,51 @@ public class BoggleGraphics implements WindowListener {
 	private void makeCharacterLabel(int xCoord, int yCoord, char c) {
 		Label l = new Label();
 
-		l.setBounds(xOffset + 1 + xCoord * squareSize, yOffset + 1 + yCoord * squareSize, squareSize - 2,
+		l.setBounds(xOffset + 1 + xCoord * squareSize, yOffset + 1 + (yCoord+1) * squareSize, squareSize - 2,
 				squareSize - 2);
 		l.setBackground(Color.getHSBColor(0, 0, (float) 0.42));
-		l.setText("" + c);
-		l.setFont(Font.decode("Serif-36"));
+		if(c=='Q') {
+			l.setText("Qu");
+			l.setFont(Font.decode("Serif-30"));
+		}
+		else {
+			l.setText("" + c);
+			l.setFont(Font.decode("Serif-36"));
+		}
+		
 		l.setAlignment(Label.CENTER);
 		l.setForeground(Color.WHITE);
 
 		dieLabels[yCoord * width + xCoord] = l;
 		f.add(l);
 	}
+	
+	private void makeScoreLabel() {
+		guessLabel = new Label();
+		guessLabel.setBounds(xOffset + squareSize * width/2-18, 12, xOffset * 2 + squareSize * (width+3) , squareSize*4);
+	}
+	public void updateScoreLabel(int score) {
+		String scoreStr = "SCORE: "+score;
+		guessLabel.setLocation(xOffset + squareSize * width/2-12*scoreStr.length(),12);
+		guessLabel.setForeground(Color.WHITE);
+		guessLabel.setText(scoreStr);
+		guessLabel.setFont(Font.decode("Serif-36"));
+		
+		f.add(guessLabel);
 
+	}
+	
 	private void makeGuessLabel() {
 		guessLabel = new Label();
-		guessLabel.setBounds(squareSize * width - 16, yOffset * 2 + squareSize * height, 0, 0);
-		guessLabel.setText(guessLabelText);
+		guessLabel.setBounds(xOffset + squareSize * width/2-18, yOffset*2 +squareSize * height+18, xOffset * 2 + squareSize * (width+3) , squareSize*4);
+	}
+	public void updateGuessLabel(String currentGuess) {
+		guessLabel.setLocation(xOffset + squareSize * width/2-12*currentGuess.length(),yOffset +squareSize * height);
+		guessLabel.setForeground(Color.WHITE);
+		guessLabel.setText(currentGuess);
 		guessLabel.setFont(Font.decode("Serif-36"));
+		
+		f.add(guessLabel);
 
 	}
 
