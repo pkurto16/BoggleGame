@@ -21,26 +21,26 @@ public class BoggleRunner implements KeyListener {
 	int highScore;
 	
 	BoggleGraphics graphics = new BoggleGraphics(this, height, width, true);
-	ArrayList<Character> currentString = new ArrayList<Character>();
 	GameTrie correctGuesses = new GameTrie();
 	File lexiconFile = new File("bin/bogwords.txt");
 	String currentGuess = "";
 	int timer = 0;
 	boolean isActive = false;
+	boolean locked = false;
 
 	public static void main(String[] args) {
-		BoggleRunner run = new BoggleRunner();
-		run.game();
+		BoggleRunner game = new BoggleRunner();
+		game.run();
 	}
 
 	
 	
-	private void game() {
+	private void run() {
 
 		lexicon = new GameTrie();
 		readLexiconFromFile();
 		graphics.start();
-		isActive = waitForStart();
+		isActive = waitForUser();
 
 		while (isActive) {
 			playOnce();
@@ -49,24 +49,10 @@ public class BoggleRunner implements KeyListener {
 				highScore = score;
 
 			isActive = askIfPlayAgain();
+			resetForNext();
+			
 		}
 
-	}
-
-	
-	
-	private boolean waitForStart() {
-
-		while (!isActive) {
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		graphics.f.removeAll();
-		return true;
 	}
 
 	
@@ -81,8 +67,6 @@ public class BoggleRunner implements KeyListener {
 		}
 
 	}
-
-	
 	
 	private void readLinesToTrie() {
 		while (myReader.hasNext()) {
@@ -90,8 +74,6 @@ public class BoggleRunner implements KeyListener {
 			lexicon.put(word, calcScore(word));
 		}
 	}
-
-	
 	
 	private int calcScore(String word) {
 		int wordScore = 0;
@@ -100,51 +82,97 @@ public class BoggleRunner implements KeyListener {
 		}
 		return wordScore;
 	}
+	
+	
+	//waits for isActive to be set true by KeyListener
+	private boolean waitForUser() {
 
-	
-	
-	private void playOnce() {
-		timer = 40000;
-		graphics.startRound();
-		while (timer > 0) {
-			graphics.updateTimer(timer/100);
-			timer -= 100;
+		while (!isActive) {
 			try {
-				Thread.sleep(100);
+				Thread.sleep(10);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		graphics.f.removeAll();
-
+		return true;
 	}
 
+	
+	private void playOnce() {
+		timer = 30000;
+		graphics.startRound();
+		
+		//main loop while playing a game
+		while (timer > 0) {
+			
+			graphics.updateTimer(timer/100);
+			timer -= 100;
+			
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		graphics.f.removeAll();
+
+	}
 	
 	
 	private boolean askIfPlayAgain() {
 		isActive = false;
 		graphics.drawFinishScreen(score, highScore);
-		while (!isActive) {
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-			}
-		}
+		isActive = waitForUser();
+		graphics.f.removeAll();
 		graphics.drawStartScreen();
 		return false;
 	}
 
+
+	private void resetForNext() {
+		correctGuesses= new GameTrie();
+		score = 0;
+		isActive = waitForUser();
+		graphics.prevLabelPaths = new LinkedList<ArrayList<Label>>();
+		currentGuess = "";
+	}
 	
+	
+	//FIRST KEYLISTENER: used for detecting typing as well as opening
+	//and closing the instructions
 	
 	@Override
-	public void keyTyped(KeyEvent e) {
+	public void keyReleased(KeyEvent e) {
+		if(isActive) {
+			
 			char typedChar = Character.toUpperCase(e.getKeyChar());
-			graphics.updateTimer(timer/100);
+			
 			if (checkQAdd(typedChar)) {
 				checkForAdd(typedChar);
 			}
+			
+		}
+		else {
+			
+			if(Character.toUpperCase(e.getKeyChar())=='I'&&!locked) {
+				if(!locked) {
+					graphics.f.removeAll();
+					graphics.f.add(graphics.instructions);
+					locked = true;
+					isActive = false;
+				}
+			}
+			
+			if(Character.toUpperCase(e.getKeyChar())=='E' && locked) {
+				graphics.f.removeAll();
+				graphics.drawStartScreen();
+				locked= false;
+			}
+		}
 	}
-
 	
 	
 	private boolean checkQAdd(Character typedChar) {
@@ -163,6 +191,7 @@ public class BoggleRunner implements KeyListener {
 	}
 
 	
+	//checks if this typedChar should be added and then adds it if it should
 	
 	private boolean checkForAdd(Character typedChar) {
 
@@ -175,14 +204,10 @@ public class BoggleRunner implements KeyListener {
 		}
 
 		if (newPossibilities.size() > 0) {
-			currentGuess += typedChar;
-			graphics.updateGuessLabel(currentGuess);
+			
 			graphics.prevLabelPaths.add(newPossibilities);
-
-			if (graphics.prevLabelPaths.size() == 1) {
-				setNewColors(0);
-			}
-			return adjustGraphicsColors();
+			
+			return adjustGraphicsColors(typedChar);
 		}
 
 		return false;
@@ -200,6 +225,20 @@ public class BoggleRunner implements KeyListener {
 		return newPossibilities;
 	}
 
+	
+	private boolean areValidAddLabels(Label currentAddition, Label prevConnection, Character typedChar) {
+		if (currentAddition == null) {
+			return false;
+		}
+
+		boolean comboValid = labelComboValid(currentAddition, prevConnection, typedChar);
+
+		if (prevConnection == null) {
+			return true && comboValid;
+		}
+
+		return currentAddition.getForeground() == Color.WHITE && comboValid;
+	}
 	
 	
 	private boolean labelComboValid(Label label, Label prev, char typedChar) {
@@ -260,58 +299,30 @@ public class BoggleRunner implements KeyListener {
 
 	
 	
-	private boolean areValidAddLabels(Label currentAddition, Label prevConnection, Character typedChar) {
-		if (currentAddition == null) {
-			return false;
-		}
-
-		boolean comboValid = labelComboValid(currentAddition, prevConnection, typedChar);
-
-		if (prevConnection == null) {
-			return true && comboValid;
-		}
-
-		return currentAddition.getForeground() == Color.WHITE && comboValid;
-	}
-
-	
-	
-	private boolean setNewColors(int index) {
-
-		if (graphics.prevLabelPaths.get(index).size() > 1) {
-			graphics.prevLabelPaths.get(index).get(0).setForeground(Color.YELLOW);
-
-		} else if (graphics.prevLabelPaths.get(index).size() == 1) {
-			graphics.prevLabelPaths.get(index).get(0).setForeground(Color.GREEN);
-		}
-
-		return true;
-	}
-
-	
-	
-	private boolean adjustGraphicsColors() {
-
+	private boolean adjustGraphicsColors(Character typedChar) {
+		
+		//traverses to develop possible paths that can be taken based on the current
+		//guess string
+		
 		for (int i = graphics.prevLabelPaths.size() - 1; i >= 1; i--) {
-			setNewColors(i);
+			
 			for (int j = graphics.prevLabelPaths.get(i - 1).size() - 1; j >= 0; j--) {
-				
-				//very rare edge case that I decided wasn't worth the complication for fixing here:
-				
-				//if there are 4+ of a letter that touch, for example,
-				//it is possible that the "first" path (the one shown) isn't able
-				//to accommodate all 4 letters typed in a row. So, if this does happen,
-				//there is a visual bug where some letters that are in fact typed and in
-				//the path show up as white and then change to green only after 1 extra letter is typed
-				//
-				
+
 				if (!labelIsUsed(graphics.prevLabelPaths.get(i - 1).get(j), graphics.prevLabelPaths.get(i))) {
+					
+					//this label is no longer included at this point in the ArrayList as it doesn't work anymore
 					graphics.prevLabelPaths.get(i - 1).get(j).setForeground(Color.WHITE);
+					graphics.prevLabelPaths.get(i - 1).get(j).setBackground(Color.getHSBColor(0, 0, (float) 0.42));
 					graphics.prevLabelPaths.get(i - 1).remove(j);
 				}
 			}
+			//resets colors to correct paths
+			setNewColors(i);
 		}
+		
 		setNewColors(0);
+		currentGuess += typedChar;
+		graphics.updateGuessLabel(currentGuess);
 		return true;
 	}
 
@@ -327,24 +338,58 @@ public class BoggleRunner implements KeyListener {
 	}
 
 	
+	//sets the Label within the arraylist to green if it is
+	//the only path and yellow if not
+	
+	private boolean setNewColors(int index) {
+
+		if (graphics.prevLabelPaths.get(index).size() > 1) {
+			graphics.prevLabelPaths.get(index).get(0).setForeground(Color.YELLOW);
+			graphics.prevLabelPaths.get(index).get(0).setBackground(Color.getHSBColor(0, 0, (float) 0.22));
+
+		} else if (graphics.prevLabelPaths.get(index).size() == 1) {
+			graphics.prevLabelPaths.get(index).get(0).setForeground(Color.GREEN);
+			graphics.prevLabelPaths.get(index).get(0).setBackground(Color.getHSBColor(0, 0, (float) 0.22));
+		}
+
+		return true;
+	}
+	
+	
+	
+	
+	//OTHER KEY LISTENER:
+	//
+	//Used for entry, backspace, and for navigation
+	
 	
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if (isActive) {
 			graphics.updateTimer(timer/100);
 			if (e.getKeyCode() == backSpaceKeyCode && currentGuess != "") {
+				
 				removeLastChar();
+				
 			}
 
 			if (e.getKeyCode() == enterKeyCode && currentGuess != "") {
+				
 				resetAfterGuess(checkGuess());
+				
 			}
 		} else {
-			if (e.getKeyCode() == enterKeyCode) {
+			
+			//locked means that the information screen is up
+			
+			if (e.getKeyCode() == enterKeyCode && !locked) {
+				height=4;
+				width=4;
+				graphics.resetDie(true,height,width);
 				isActive = true;
 			}
-			if (e.getKeyCode() == backSpaceKeyCode) {
-				height = 6-(int)(Math.random()*3);
+			if (e.getKeyCode() == backSpaceKeyCode && !locked) {
+				height = 7-(int)(Math.random()*3);
 				width = height;
 				graphics.resetDie(false,height,width);
 				isActive = true;
@@ -355,15 +400,23 @@ public class BoggleRunner implements KeyListener {
 	
 	
 	private void removeLastChar() {
+		
 		if (currentGuess.length() > 1 && currentGuess.charAt(currentGuess.length() - 2) == 'Q') {
+			
 			currentGuess = currentGuess.substring(0, currentGuess.length() - 2);
 			graphics.updateGuessLabel(currentGuess);
+			
 		} else {
+			
 			currentGuess = currentGuess.substring(0, currentGuess.length() - 1);
 			graphics.updateGuessLabel(currentGuess);
+			
 		}
 		for(Label l : graphics.prevLabelPaths.getLast()) {
+			
 			l.setForeground(Color.WHITE);
+			l.setBackground(Color.getHSBColor(0, 0, (float) 0.42));
+			
 		}
 		graphics.prevLabelPaths.removeLast();
 	}
@@ -378,50 +431,72 @@ public class BoggleRunner implements KeyListener {
 	
 	private void resetAfterGuess(int enteredStringScore) {
 		String userGuess = currentGuess;
-
+		
+		//makes sure it isn't already guessed
 		if (!correctGuesses.contains(userGuess)) {
+			
+			//makes sure it is a real word
 			if (lexicon.contains(userGuess)) {
+				
+				//good word
 				outputAfterScored(enteredStringScore);
+				
+			
 			} else {
+				
 				graphics.updateGuessLabel("NOT A WORD");
 				graphics.guessLabel.setForeground(Color.RED);
+				
 			}
 		} else {
-			graphics.updateGuessLabel("ALREADY GUESSED");
+			
+			graphics.updateGuessLabel("REPEAT GUESS");
 			graphics.guessLabel.setForeground(Color.YELLOW);
+			
 		}
 
 		for (Label l : graphics.dieLabels) {
 			l.setForeground(Color.WHITE);
+			l.setBackground(Color.getHSBColor(0, 0, (float) 0.42));
 		}
-
+		
+		//enter key always resets the text
 		graphics.prevLabelPaths = new LinkedList<ArrayList<Label>>();
 		currentGuess = "";
 
 	}
 
 	
-	
+	//if guessed correctly
 	private void outputAfterScored(int additionalScore) {
 
-		timer += additionalScore * 300;
+		timer += additionalScore * 1000;
+		
+		//should never be false, just extra verification
+		
 		if (additionalScore > 0) {
+			
 			score += additionalScore;
+			
 			graphics.updateGuessLabel("+" + additionalScore + " POINTS");
 			graphics.guessLabel.setForeground(Color.GREEN);
+			
 			for (Label l : graphics.dieLabels) {
 				l.setForeground(Color.WHITE);
+				l.setBackground(Color.getHSBColor(0, 0, (float) 0.42));
 			}
+			
 			graphics.updateScoreLabel(score);
 			
 		}
-
+		
+		//adds to trie of already used guesses
 		correctGuesses.put(currentGuess, additionalScore);
 
 	}
 	
 	@Override
-	public void keyReleased(KeyEvent e) {
+	public void keyTyped(KeyEvent e) {
 	}
 
 }

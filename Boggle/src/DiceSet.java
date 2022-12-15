@@ -27,15 +27,16 @@ public class DiceSet {
 	private int height = 4;
 	private int width = 7;
 
-	public DiceSet(boolean isBoring, int height, int width) {
+	public DiceSet(boolean isStandard, int height, int width) {
 		this.height = height;
 		this.width = width;
 		
 		totalWeight = 0;
+		
 		for(int i:letterWeights) {
 			totalWeight+=i;
 		}
-		if(isBoring) {
+		if(isStandard) {
 			diceSet = DICE;
 		}
 		else {
@@ -57,6 +58,7 @@ public class DiceSet {
 
 	private void createOneDie(int i, int j) {
 		char[] availableLetters = new char[26];
+		
 		for(int k = 0; k<26; k++) {
 			availableLetters[k] = allLetters[k];
 		}
@@ -76,24 +78,33 @@ public class DiceSet {
 			randomSeed = (int) (Math.random() * totalWeight)+1;
 			generatedChar = getCharFromSeed(randomSeed);
 		}
+		//if letter is already used, then it has to regenerate
 		while (availableLetters[generatedChar.hashCode()-65] == '!');
+		
 		return generatedChar;
 	}
 
 
 	private char getCharFromSeed(int seed) {
+		
 		int seedCheckingIterations = 0;
 		int currentLetterIndex = -1;
+		
 		while(seedCheckingIterations<seed) {
 			currentLetterIndex++;
 			seedCheckingIterations+=letterWeights[currentLetterIndex];
 		}
+		
 		return allLetters[currentLetterIndex];
 	}
+	
+	
 	public Character[][][] getDiceSet() {
 		return diceSet;
 	}
+	
 	public char[][] getShuffledDiceSet(){
+		
 		char[][] eachDie = new char[width][height];
 		for(int i = 0; i<width; i++) {
 			for(int j =0; j<height; j++) {
@@ -102,5 +113,4 @@ public class DiceSet {
 		}
 		return eachDie;
 	}
-
 }
